@@ -1,0 +1,633 @@
+import { useState, useEffect } from "react";
+import { Form } from "react-bootstrap";
+import axios from "axios";
+import { Modal } from "react-bootstrap";
+import Button from "@mui/material/Button";
+import Accordion from "react-bootstrap/Accordion";
+import ImageUpload from "./img-upload/ImageUpload.js";
+import { CountryDropdown } from "react-country-region-selector";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import Snackbar from "@mui/material/Snackbar";
+
+import "../app.css";
+
+function AddNewEmployee() {
+  const [employee, setEmployee] = useState({
+    firstName: "",
+    lastName: "",
+    gender: "",
+    workEmailAddress: "",
+    status: "",
+    dateJoined: "",
+    roleId: "",
+    nicNo: "",
+    profileImage: "",
+    departmentId: "",
+    address: [],
+    contacts: [],
+  });
+
+  const [homeAddress, setHomeAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [addressType, setAddressType] = useState("");
+
+  const [permHomeAddress, setPermAddress] = useState("");
+  const [permCity, setPermCity] = useState("");
+  const [permCountry, setPermCountry] = useState("");
+  const [permPostalCode, setPermPostalCode] = useState("");
+  const [permAddressType, setPermAddressType] = useState("");
+
+  const [mobContactNumber, setMobContactNumber] = useState("");
+  const [mobCountryCode, setMobCountryCode] = useState("");
+  const [mobPersonalEmailAddress, setMobPersonalEmailAddress] = useState("");
+  const [mobContactType, setMobContactType] = useState("");
+
+  const [telContactNumber, setTelContactNumber] = useState("");
+  const [telCountryCode, setTelCountryCode] = useState("");
+  const [telContactType, setTelContactType] = useState("");
+
+  const [departmentData, setDepartmentData] = useState([]);
+  const [roleData, setRoleData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await axios.get(
+        "https://localhost:7193/api/Department/GetAllDepartments"
+      );
+      setDepartmentData(result.data);
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await axios.get("https://localhost:7193/api/Role");
+      setRoleData(result.data);
+    };
+    fetchData();
+  }, []);
+
+  const [isUnder18, setIsUnder18] = useState(false);
+  const [isInvalidDob, setIsInvalidDob] = useState(false);
+
+  function handleDateOfBirthChange(e) {
+    const dateOfBirth = e.target.value;
+
+    // Check if the date of birth is 18 years or more in the past
+    const eighteenYearsAgo = new Date();
+    eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+    const enteredDate = new Date(dateOfBirth);
+    const isValidDob = enteredDate.getFullYear();
+    setIsInvalidDob(isValidDob <= 1900);
+    setIsUnder18(enteredDate > eighteenYearsAgo);
+
+    setEmployee({ ...employee, dateOfBirth: dateOfBirth });
+  }
+  function handleImageChange(data) {
+    setEmployee({ ...employee, profileImage: data });
+  }
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const tempAddress = {
+      homeAddress: homeAddress,
+      city: city,
+      country: country,
+      postalCode: postalCode,
+      addressType: addressType,
+    };
+
+    const permAddress = {
+      homeAddress: permHomeAddress,
+      city: permCity,
+      country: permCountry,
+      postalCode: permPostalCode,
+      addressType: permAddressType,
+    };
+
+    const MobileContact = {
+      contactNumber: mobContactNumber,
+      countryCode: mobCountryCode,
+      personalEmailAddress: mobPersonalEmailAddress,
+      contactType: mobContactType,
+    };
+
+    const TeleContact = {
+      contactNumber: telContactNumber,
+      countryCode: telCountryCode,
+      contactType: telContactType,
+    };
+
+    const newEmployee = {
+      ...employee,
+      address: [...employee.address, tempAddress, permAddress],
+      contacts: [...employee.contacts, MobileContact, TeleContact],
+    };
+
+    try {
+      // Validate form data
+      if (
+        //!permHomeAddress ||
+       // !permCity ||
+        //!permCountry ||
+      //  !permPostalCode ||
+        !employee.firstName ||
+        !employee.lastName ||
+        !employee.gender ||
+        !employee.roleId ||
+        !employee.nicNo ||
+        !employee.departmentId ||
+        !employee.dateJoined
+      ) {
+        setShowNullAlert(true);
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(employee.workEmailAddress)) {
+        setShowEmailAlert(true);
+        return;
+      }
+
+      // Validate NIC number
+      // if (!/^[0-9]{9}[vVxX]$/.test(employee.nicNo)) {
+      //   throw new Error('Invalid NIC number');
+      // }
+
+      // Validate postal code
+      // if (!/^[0-9]{5}$/.test(postalCode)) {
+      //   throw new Error('Invalid postal code');
+      // }
+
+      axios
+        .post("https://localhost:7193/api/Employee/AddEmployee", newEmployee)
+        .then((res) => {
+          setEmployee(res.data);
+          setHomeAddress("");
+          setCity("");
+          setCountry("");
+          setPostalCode("");
+          setPermAddress("");
+          setPermCity("");
+          setPermCountry("");
+          setPermPostalCode("");
+          setAddressType("");
+          setPermAddressType("");
+          setMobContactNumber("");
+          setMobContactType("");
+          setMobCountryCode("");
+          setMobPersonalEmailAddress("");
+          setTelContactNumber("");
+          setTelContactType("");
+          setTelCountryCode("");
+          setShowSuccess(true);
+          return;
+        });
+      window.location.reload();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  const [show, setShow] = useState(false);
+  const handleClose = () => setShow(false);
+  const handleShow = () => setShow(true);
+  const [showNullAlert, setShowNullAlert] = useState(false);
+  const [showEmailAlert, setShowEmailAlert] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  return (
+    <>
+      <Button
+        variant="contained"
+        startIcon={<PersonAddIcon />}
+        onClick={handleShow}
+      >
+        Add
+      </Button>
+      <Modal
+        show={show}
+        onHide={handleClose}
+        size="lg"
+        centered
+        backdrop="static"
+      >
+        <Modal.Body className="p-4">
+          <Form className="d-flex" onSubmit={handleSubmit}>
+            <Form.Group className="col-5 p-4">
+              <ImageUpload onImageChange={handleImageChange}></ImageUpload>
+              <Form.Group className="d-flex justify-content-between">
+                <div className="col-sm-5">
+                  <Form.Label className="bold-txt mt-3 custom-input-field-title">
+                    Gender
+                  </Form.Label>
+                  <Form.Select
+                    aria-label="Gender"
+                    className="custom-input-field-form"
+                    id="g-btn"
+                    value={employee.gender}
+                    onChange={(e) =>
+                      setEmployee({ ...employee, gender: e.target.value })
+                    }
+                  >
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </Form.Select>
+                </div>
+                <div className="col-sm-6">
+                  <Form.Label className="bold-txt mt-3 custom-input-field-title">
+                    Department
+                  </Form.Label>
+                  <Form.Control
+                    as="select"
+                    value={employee.departmentId}
+                    onChange={(e) =>
+                      setEmployee({ ...employee, departmentId: e.target.value })
+                    }
+                  >
+                    <option value="">Select</option>
+                    {departmentData.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.departmentName}
+                      </option>
+                    ))}
+                  </Form.Control>
+                </div>
+              </Form.Group>
+
+              <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                Role
+              </Form.Label>
+              <Form.Control
+                as="select"
+                value={employee.roleId}
+                onChange={(e) =>
+                  setEmployee({ ...employee, roleId: e.target.value })
+                }
+              >
+                <option value="">Select</option>
+                {roleData.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.roleName}
+                  </option>
+                ))}
+              </Form.Control>
+
+              <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                Date Joined
+              </Form.Label>
+              <Form.Control
+                type="date"
+                value={employee.dateJoined}
+                onChange={(e) =>
+                  setEmployee({ ...employee, dateJoined: e.target.value })
+                }
+              ></Form.Control>
+            </Form.Group>
+            <Form.Group className="col-7 p-4">
+              <Form.Group className="d-flex justify-content-between">
+                <div className="col-sm-5">
+                  <Form.Label className="bold-txt custom-input-field-title">
+                    First Name
+                  </Form.Label>
+                  <Form.Control
+                    value={employee.firstName}
+                    onChange={(e) =>
+                      setEmployee({ ...employee, firstName: e.target.value })
+                    }
+                  ></Form.Control>
+                </div>
+                <div className="col-sm-6">
+                  <Form.Label className="bold-txt custom-input-field-title">
+                    Last Name
+                  </Form.Label>
+                  <Form.Control
+                    value={employee.lastName}
+                    onChange={(e) =>
+                      setEmployee({ ...employee, lastName: e.target.value })
+                    }
+                  ></Form.Control>
+                </div>
+              </Form.Group>
+              <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                Date Of birth
+              </Form.Label>
+              <Form.Control
+                type="date"
+                value={employee.dateOfBirth}
+                onChange={handleDateOfBirthChange}
+              ></Form.Control>
+              {isInvalidDob && (
+                <Alert variant="danger">Invalid date of birth.</Alert>
+              )}
+              {isUnder18 && (
+                <Alert severity="error">You must be 18 years or older!!.</Alert>
+              )}
+
+              {/* -------------------------------------------------------Address 1---------------------------------------------------------------------------- */}
+
+              <Accordion className="mt-3">
+                <Accordion.Item eventKey="0">
+                  <Accordion.Header className="bold-txt  custom-input-field-title">
+                    Permanant Address
+                  </Accordion.Header>
+                  <Accordion.Body>
+                    <Form.Select
+                      aria-label="Address Type"
+                      className="custom-input-field-form"
+                      id="g-btn"
+                      value={permAddressType}
+                      onChange={(e) => setPermAddressType(e.target.value)}
+                    >
+                      <option value="">Select</option>
+                      <option value="Permanant">Permanant</option>
+                    </Form.Select>
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                      Address
+                    </Form.Label>
+                    <Form.Control
+                      value={permHomeAddress}
+                      onChange={(e) => setPermAddress(e.target.value)}
+                    ></Form.Control>
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title col-sm-4">
+                      Country
+                    </Form.Label>
+                    <CountryDropdown
+                      className="form-select mt-2"
+                      value={permCountry}
+                      onChange={(val) => setPermCountry(val)}
+                      disableWhenEmpty={true}
+                    />
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title col-sm-4">
+                      City
+                    </Form.Label>
+                    <Form.Control
+                      value={permCity}
+                      onChange={(e) => setPermCity(e.target.value)}
+                    ></Form.Control>
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                      Postal Code
+                    </Form.Label>
+                    <Form.Control
+                      value={permPostalCode}
+                      onChange={(e) => setPermPostalCode(e.target.value)}
+                    ></Form.Control>
+                  </Accordion.Body>
+                </Accordion.Item>
+              </Accordion>
+
+              {/* ----------------------------------------------Address 2-------------------------------------------------------------------------- */}
+              <Accordion className="mt-3 ">
+                <Accordion.Item
+                  eventKey="1"
+
+                  // style={{
+                  //   background: "none",
+                  // }}
+                >
+                  <Accordion.Header className="bold-txt  custom-input-field-title w-100">
+                    Temporary Address
+                  </Accordion.Header>
+                  <Accordion.Body>
+                  <Form.Select
+                      aria-label="Address Type"
+                      className="custom-input-field-form"
+                      id="g-btn"
+                      value={addressType}
+                      onChange={(e) => setAddressType(e.target
+                        .value)}
+
+                    >
+                      <option value="">Select</option>
+                      <option value="Temporary">Temporary</option>
+
+                    </Form.Select>
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                      Address
+                    </Form.Label>
+                    <Form.Control
+                      value={homeAddress}
+                      onChange={(e) => setHomeAddress(e.target.value)}
+                    ></Form.Control>
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title col-sm-4">
+                      Country
+                    </Form.Label>
+                    <CountryDropdown
+                      className="form-select mt-2"
+                      value={country}
+                      onChange={(val) => setCountry(val)}
+                      disableWhenEmpty={true}
+                    />
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title col-sm-4">
+                      City
+                    </Form.Label>
+                    <Form.Control
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                    ></Form.Control>
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                      Postal Code
+                    </Form.Label>
+                    <Form.Control
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value)}
+                    ></Form.Control>
+                  </Accordion.Body>
+                </Accordion.Item>
+              </Accordion>
+
+              {/* ---------------------------------------------------------------------------------------------------------------------- */}
+
+              <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                NIC Number
+              </Form.Label>
+              <Form.Control
+                value={employee.nicNo}
+                onChange={(e) =>
+                  setEmployee({ ...employee, nicNo: e.target.value })
+                }
+              ></Form.Control>
+              <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                Work Email Address
+              </Form.Label>
+              <Form.Control
+                value={employee.workEmailAddress}
+                onChange={(e) =>
+                  setEmployee({ ...employee, workEmailAddress: e.target.value })
+                }
+              ></Form.Control>
+
+              {/* ------------------------------------------------------Mobile Contact-------------------------------------------------------------- */}
+
+              <Accordion className="mt-3">
+                <Accordion.Item eventKey="2">
+                  <Accordion.Header className="bold-txt  custom-input-field-title">
+                    Mobile Contact
+                  </Accordion.Header>
+                  <Accordion.Body>
+                    <Form.Select
+                      aria-label="Contact Type"
+                      className="custom-input-field-form"
+                      id="g-btn"
+                      value={mobContactType}
+                      onChange={(e) => setMobContactType(e.target.value)}
+                    >
+                      <option value="">Select</option>
+                      <option value="Mobile">Mobile</option>
+                    </Form.Select>
+
+                    <div className="col-12 d-flex">
+                      <div className="col-3">
+                        <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                          Country Code
+                        </Form.Label>
+                        <Form.Control
+                          value={mobCountryCode}
+                          onChange={(e) => setMobCountryCode(e.target.value)}
+                          placeholder="+94"
+                        ></Form.Control>
+                      </div>
+                      <div className="col-9 ">
+                        <Form.Label className="bold-txt mt-2 custom-input-field-title col-sm-4">
+                          Contact Number
+                        </Form.Label>
+                        <Form.Control
+                          className="col-sm-3"
+                          value={mobContactNumber}
+                          onChange={(e) => setMobContactNumber(e.target.value)}
+                        ></Form.Control>
+                      </div>
+                    </div>
+
+                    <Form.Label className="bold-txt mt-2 custom-input-field-title col-sm-4">
+                      Personal Email Address
+                    </Form.Label>
+                    <Form.Control
+                      value={mobPersonalEmailAddress}
+                      onChange={(e) =>
+                        setMobPersonalEmailAddress(e.target.value)
+                      }
+                    ></Form.Control>
+                  </Accordion.Body>
+                </Accordion.Item>
+              </Accordion>
+
+              {/* ------------------------------------------------Telephone Contact-------------------------------------------------------------- */}
+
+              <Accordion className="mt-3">
+                <Accordion.Item eventKey="3">
+                  <Accordion.Header className="bold-txt  custom-input-field-title">
+                    Landline / Telephone
+                  </Accordion.Header>
+                  <Accordion.Body>
+                    <Form.Select
+                      aria-label="Contact Type"
+                      className="custom-input-field-form"
+                      id="g-btn"
+                      value={telContactType}
+                      onChange={(e) => setTelContactType(e.target.value)}
+                    >
+                      <option value="">Select</option>
+                      <option value="Telephone">Telephone</option>
+                    </Form.Select>
+
+                    <div className="col-12 d-flex">
+                      <div className="col-3">
+                        <Form.Label className="bold-txt mt-2 custom-input-field-title">
+                          Country Code
+                        </Form.Label>
+                        <Form.Control
+                          value={telCountryCode}
+                          onChange={(e) => setTelCountryCode(e.target.value)}
+                          placeholder="+94"
+                        ></Form.Control>
+                      </div>
+                      <div className="col-9 ">
+                        <Form.Label className="bold-txt mt-2 custom-input-field-title col-sm-4">
+                          Contact Number
+                        </Form.Label>
+                        <Form.Control
+                          className="col-sm-3"
+                          value={telContactNumber}
+                          onChange={(e) => setTelContactNumber(e.target.value)}
+                        ></Form.Control>
+                      </div>
+                    </div>
+                  </Accordion.Body>
+                </Accordion.Item>
+              </Accordion>
+
+              {/* ---------------------------------------------------------------------------------------------------------------------- */}
+
+              <div className="d-flex justify-content-between">
+                <Button type="submit" className="mt-4">
+                  Submit
+                </Button>
+                <Button
+                  variant="primary"
+                  className="mt-4 ms-5"
+                  onClick={handleClose}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      <Modal
+        show={showNullAlert}
+        onHide={() => setShowNullAlert(false)}
+        size="lg"
+        className="errorModal"
+      >
+        <Alert variant="outlined" severity="error">
+          Fill all the required fields
+        </Alert>
+      </Modal>
+
+      <Modal
+        show={showEmailAlert}
+        onHide={() => setShowEmailAlert(false)}
+        size="lg"
+        className="errorModal"
+      >
+        <Alert variant="outlined" severity="error">
+          Incorrect Email format
+        </Alert>
+      </Modal>
+
+      <Modal
+        show={showSuccess}
+        onHide={() => setShowSuccess(false)}
+        size="lg"
+        className="errorModal"
+      >
+        <Alert severity="success">
+          <AlertTitle>Success</AlertTitle>
+          <strong>Employee Added Successfully!! </strong> .
+        </Alert>
+      </Modal>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <div>
+      <AddNewEmployee />
+    </div>
+  );
+}
